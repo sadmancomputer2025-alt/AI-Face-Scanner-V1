@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI Face Scanner — Real-time multi-person browser-based face detection, landmark tracking, age & gender estimation, and emotion analysis developed by Sadman Sakib.">
+  <meta name="author" content="Sadman Sakib">
+  <meta name="theme-color" content="#0284c7">
+  
+  <title>AI Face Scanner — Real-Time Face Detection & Analysis | Developed by Sadman Sakib</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- face-api.js library: Local copy with CDN fallback -->
+  <script src="js/face-api.min.js"></script>
+  <script>
+    if (typeof faceapi === 'undefined') {
+      console.warn("Local face-api.min.js not detected, loading via CDN fallback...");
+      document.write('<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- ========================================================
+       TOP HEADER & NAVIGATION
+  ======================================================== -->
+  <header class="app-header">
+    <div class="header-container">
+      
+      <!-- Brand & Title Area -->
+      <div class="brand-area">
+        <div class="logo-box" aria-hidden="true">
+          <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="10" fill="url(#logo-grad)"/>
+            <!-- Face Outline Reticle -->
+            <path d="M10 8H8C6.89543 8 6 8.89543 6 10V12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 8H24C25.1046 8 26 8.89543 26 10V12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M10 24H8C6.89543 24 6 23.1046 6 22V20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 24H24C25.1046 24 26 23.1046 26 22V20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <!-- Eyes & Smile -->
+            <circle cx="12" cy="14" r="1.5" fill="#38bdf8"/>
+            <circle cx="20" cy="14" r="1.5" fill="#38bdf8"/>
+            <path d="M12.5 19C13.5 20.5 18.5 20.5 19.5 19" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+            <!-- Neural Scanner Node -->
+            <circle cx="16" cy="9" r="1.2" fill="#38bdf8"/>
+            <defs>
+              <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0284c7"/>
+                <stop offset="1" stop-color="#1e40af"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="logo-pulse"></span>
+        </div>
+
+        <div class="title-meta">
+          <div class="title-row">
+            <h1 class="app-title">AI Face Scanner</h1>
+            <span class="dev-badge" title="Developer Attribution">
+              <svg class="badge-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+              </svg>
+              Developed by Sadman Sakib
+            </span>
+          </div>
+          <p class="app-subtitle">Real-time multi-person face analysis</p>
+        </div>
+      </div>
+
+      <!-- Right Header: System Status & Quick Actions -->
+      <div class="header-actions">
+        <!-- AI System Status Pill -->
+        <div id="systemStatusPill" class="system-status-pill loading" role="status" aria-live="polite">
+          <span id="systemStatusDot" class="status-dot"></span>
+          <span id="systemStatusText" class="status-text">AI Models Loading...</span>
+        </div>
+
+        <!-- Header Links / Modals -->
+        <nav class="nav-links">
+          <button type="button" class="nav-btn" id="openAboutBtn" aria-label="About Application">
+            <svg viewBox="0 0 20 20" fill="currentColor" class="nav-icon"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+            <span>About</span>
+          </button>
+          <button type="button" class="nav-btn" id="openTechBtn" aria-label="AI Technology Info">
+            <svg viewBox="0 0 20 20" fill="currentColor" class="nav-icon"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+            <span>Technology</span>
+          </button>
+          <button type="button" class="nav-btn" id="openPrivacyBtn" aria-label="Privacy Notice">
+            <svg viewBox="0 0 20 20" fill="currentColor" class="nav-icon"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+            <span>Privacy</span>
+          </button>
+        </nav>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================
+       MAIN APPLICATION WORKSPACE
+  ======================================================== -->
+  <main class="app-main">
+    <div class="dashboard-grid">
+
+      <!-- ====================================================
+           LEFT COLUMN: LIVE CAMERA & CONTROLS
+      ===================================================== -->
+      <section class="card camera-card" aria-label="Live Camera Feed & Controls">
+        
+        <!-- Panel Header -->
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon">📷</span>
+            <h2 class="panel-title">Live Camera</h2>
+          </div>
+
+          <div class="panel-badges">
+            <div id="liveBadge" class="live-badge inactive">
+              <span class="live-dot"></span>
+              <span id="liveBadgeText">OFFLINE</span>
+            </div>
+
+            <div id="perfBadge" class="perf-badge" title="Performance metrics">
+              <span id="perfFps">0 FPS</span>
+              <span class="perf-divider">•</span>
+              <span id="perfLatency">0 ms</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera Viewport Container (16:9 Aspect Ratio) -->
+        <div class="camera-viewport-container" id="viewportContainer">
+          
+          <!-- Video Element (Hidden until active) -->
+          <video
+            id="video"
+            autoplay
+            muted
+            playsinline
+            aria-label="Webcam Video Stream"
+          ></video>
+
+          <!-- Image Element (For Sample or Uploaded Photos) -->
+          <img id="sampleImage" class="sample-image-display" alt="Analyzed face photo" style="display: none;">
+
+          <!-- Canvas Overlay for AI Bounding Boxes, Landmarks & Labels -->
+          <canvas id="overlay" aria-label="Face detection overlays"></canvas>
+
+          <!-- Sci-Fi HUD Scanline (Toggleable) -->
+          <div id="scannerLine" class="scanner-laser-line"></div>
+
+          <!-- High-Tech Corner Reticles -->
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
+
+          <!-- Floating In-Camera Status Pill -->
+          <div id="cameraStatusPill" class="camera-floating-status">
+            <span class="status-indicator-dot"></span>
+            <span id="cameraStatusText">Initializing AI Models...</span>
+          </div>
+
+          <!-- Floating Face Count In Viewport -->
+          <div id="viewportFaceCount" class="viewport-face-pill" style="display: none;">
+            <span id="viewportFaceCountNum">0</span> Faces Active
+          </div>
+
+          <!-- Standby / Idle Welcome Overlay -->
+          <div id="standbyOverlay" class="camera-standby-overlay">
+            <div class="standby-content">
+              <div class="standby-scanner-ring">
+                <svg viewBox="0 0 64 64" fill="none" class="ring-svg">
+                  <circle cx="32" cy="32" r="28" stroke="rgba(14, 165, 233, 0.2)" stroke-width="2"/>
+                  <circle cx="32" cy="32" r="28" stroke="#0ea5e9" stroke-width="2.5" stroke-dasharray="40 140" stroke-linecap="round" class="rotating-ring"/>
+                  <circle cx="32" cy="32" r="18" stroke="rgba(14, 165, 233, 0.3)" stroke-width="1.5" stroke-dasharray="20 90" stroke-linecap="round" class="rotating-ring-reverse"/>
+                </svg>
+                <div class="reticle-center-icon">👁️</div>
+              </div>
+
+              <h3 class="standby-title">Camera Inactive</h3>
+              <p class="standby-desc">Click <strong>Start Camera</strong> to begin live AI facial detection, or test immediately using sample photos below.</p>
+              
+              <div class="standby-actions">
+                <button type="button" class="btn btn-primary standby-start-btn" id="standbyStartBtn" disabled>
+                  <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>
+                  <span>Start Camera</span>
+                </button>
+                <button type="button" class="btn btn-outline" id="standbySampleBtn">
+                  <span>Try Sample Photo</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Primary Controls Bar -->
+        <div class="controls-bar">
+          
+          <!-- Start Camera Button -->
+          <button
+            type="button"
+            id="startBtn"
+            class="btn btn-primary btn-large"
+            disabled
+            aria-label="Start Camera Stream"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+              <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/>
+            </svg>
+            <span>Start Camera</span>
+          </button>
+
+          <!-- Stop Camera Button -->
+          <button
+            type="button"
+            id="stopBtn"
+            class="btn btn-destructive btn-large"
+            disabled
+            aria-label="Stop Camera Stream"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+              <rect x="4" y="4" width="12" height="12" rx="2"/>
+            </svg>
+            <span>Stop Camera</span>
+          </button>
+
+          <!-- Snapshot Button -->
+          <button
+            type="button"
+            id="snapshotBtn"
+            class="btn btn-secondary btn-icon-only"
+            title="Capture AI Snapshot"
+            disabled
+            aria-label="Capture Snapshot of current frame"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+              <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+
+          <!-- Switch Camera Button (if multiple devices) -->
+          <button
+            type="button"
+            id="switchCamBtn"
+            class="btn btn-secondary btn-icon-only"
+            title="Switch Camera Device"
+            style="display: none;"
+            aria-label="Switch Camera Device"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+
+        </div>
+
+        <!-- AI Feature & Customization Controls -->
+        <div class="settings-collapsible">
+          <div class="settings-title-row">
+            <span class="settings-title">⚙️ AI Detection Settings</span>
+            <button type="button" class="settings-toggle-btn" id="toggleSettingsBtn" aria-expanded="false" aria-controls="settingsPanel">
+              <span id="settingsToggleText">Customize</span>
+              <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+          </div>
+
+          <div id="settingsPanel" class="settings-body" style="display: none;">
+            
+            <div class="settings-grid">
+              <!-- Toggle 68 Landmarks -->
+              <label class="toggle-option">
+                <input type="checkbox" id="toggleLandmarks" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">
+                  <strong>68 Face Landmarks</strong>
+                  <small>Render facial mesh points</small>
+                </span>
+              </label>
+
+              <!-- Toggle Sci-Fi Scanline -->
+              <label class="toggle-option">
+                <input type="checkbox" id="toggleScanline" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">
+                  <strong>HUD Scanline</strong>
+                  <small>Cybernetic scanning sweep</small>
+                </span>
+              </label>
+
+              <!-- Toggle Emotion Breakdown Bars -->
+              <label class="toggle-option">
+                <input type="checkbox" id="toggleEmotionBars" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">
+                  <strong>Micro-Expressions</strong>
+                  <small>Detailed emotion distribution</small>
+                </span>
+              </label>
+
+              <!-- Mirror Webcam View -->
+              <label class="toggle-option">
+                <input type="checkbox" id="toggleMirror" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">
+                  <strong>Mirror Video</strong>
+                  <small>Natural selfie orientation</small>
+                </span>
+              </label>
+            </div>
+
+            <!-- Performance / Interval & Sensitivity Row -->
+            <div class="settings-sliders-row">
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label for="speedSelect">Scan Frequency:</label>
+                  <span id="speedValue" class="slider-badge">500 ms</span>
+                </div>
+                <select id="speedSelect" class="form-select">
+                  <option value="250">High Performance (250 ms)</option>
+                  <option value="400">Smooth (400 ms)</option>
+                  <option value="500" selected>Balanced (500 ms - Recommended)</option>
+                  <option value="800">Battery Saver (800 ms)</option>
+                </select>
+              </div>
+
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label for="thresholdInput">Detection Sensitivity:</label>
+                  <span id="thresholdValue" class="slider-badge">0.45</span>
+                </div>
+                <input type="range" id="thresholdInput" min="0.25" max="0.75" step="0.05" value="0.45" class="form-range">
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Sample Photos / Upload Testing Bar -->
+        <div class="sample-test-bar">
+          <div class="sample-label-area">
+            <span class="sample-label-tag">No Webcam? Test AI with Samples:</span>
+          </div>
+          <div class="sample-buttons">
+            <button type="button" class="btn-chip" data-sample="single">
+              <span>👤 Single Face</span>
+            </button>
+            <button type="button" class="btn-chip" data-sample="duo">
+              <span>👥 Duo Selfie</span>
+            </button>
+            <button type="button" class="btn-chip" data-sample="group">
+              <span>👨‍👩‍👧 Group (3 Faces)</span>
+            </button>
+            <label class="btn-chip btn-chip-upload" title="Upload custom JPG/PNG image">
+              <span>📁 Upload Photo</span>
+              <input type="file" id="imageUploadInput" accept="image/jpeg, image/png, image/webp" style="display: none;">
+            </label>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ====================================================
+           RIGHT COLUMN: DETECTION STATISTICS & CARDS
+      ===================================================== -->
+      <section class="card stats-card" aria-label="Real-Time Face Detection Statistics">
+        
+        <!-- Panel Header -->
+        <div class="panel-header stats-panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon">👥</span>
+            <h2 class="panel-title">Detection Statistics</h2>
+          </div>
+
+          <!-- Large Dynamic Counter -->
+          <div class="counter-badge" id="counterBadge" title="Number of people detected">
+            <span class="counter-label">People Detected</span>
+            <span id="peopleCount" class="counter-number">0</span>
+          </div>
+        </div>
+
+        <!-- Aggregate Summary Bar (Visible when >= 1 face) -->
+        <div id="aggregateSummaryBar" class="aggregate-summary-bar" style="display: none;">
+          <div class="summary-metric">
+            <span class="summary-sub">Avg. Age</span>
+            <strong id="summaryAvgAge" class="summary-val">--</strong>
+          </div>
+          <div class="summary-metric">
+            <span class="summary-sub">Top Emotion</span>
+            <strong id="summaryTopEmotion" class="summary-val">--</strong>
+          </div>
+          <div class="summary-metric">
+            <span class="summary-sub">Gender Split</span>
+            <strong id="summaryGenderSplit" class="summary-val">--</strong>
+          </div>
+        </div>
+
+        <!-- Dynamic Results Container for Person Cards -->
+        <div id="results" class="results-list" role="region" aria-live="polite">
+          
+          <!-- Empty State (Shown initially or when 0 faces) -->
+          <div id="emptyState" class="empty-state">
+            <div class="empty-icon-wrap">
+              <svg viewBox="0 0 48 48" fill="none" class="empty-svg">
+                <circle cx="24" cy="24" r="22" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4"/>
+                <path d="M16 22C17.1046 22 18 21.1046 18 20C18 18.8954 17.1046 18 16 18C14.8954 18 14 18.8954 14 20C14 21.1046 14.8954 22 16 22Z" fill="#94a3b8"/>
+                <path d="M32 22C33.1046 22 34 21.1046 34 20C34 18.8954 33.1046 18 32 18C30.8954 18 30 18.8954 30 20C30 21.1046 30.8954 22 32 22Z" fill="#94a3b8"/>
+                <path d="M17 31C18 33 21 35 24 35C27 35 30 33 31 31" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h4 class="empty-title" id="emptyStateTitle">Scanner Ready</h4>
+            <p class="empty-text" id="emptyStateDesc">
+              Start the camera or load a sample image to begin real-time multi-person face analysis.
+            </p>
+          </div>
+
+          <!-- Dynamic Person Cards Container (Preserved across frames to avoid buffering/flicker) -->
+          <div id="cardsContainer" class="cards-container"></div>
+
+        </div>
+
+        <!-- Professional Privacy Notice Box -->
+        <div class="privacy-notice-box">
+          <div class="notice-header">
+            <svg viewBox="0 0 20 20" fill="currentColor" class="notice-icon"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            <strong class="notice-title">Privacy First</strong>
+          </div>
+          <p class="notice-text">
+            Your camera feed is processed locally in your browser. No camera footage is uploaded or stored by this application.
+          </p>
+          <p class="notice-subtext">
+            <strong>Important:</strong> Age, gender, and expression results are AI-generated estimates and may not always be accurate. They should not be treated as verified personal information.
+          </p>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ========================================================
+       MODAL DIALOGS
+  ======================================================== -->
+
+  <!-- Modal 1: About AI Face Scanner -->
+  <div id="aboutModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">🤖</span>
+          <h3 id="aboutModalTitle" class="modal-title">About AI Face Scanner</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal aria-label="Close dialog">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-lead">
+          <strong>AI Face Scanner</strong> is a browser-based real-time face detection and analysis application.
+        </p>
+        
+        <div class="modal-tech-list">
+          <h4>Core Technologies</h4>
+          <ul>
+            <li><strong>Runtime:</strong> Client-Side Modern JavaScript (ES6+)</li>
+            <li><strong>AI Engine:</strong> face-api.js & TensorFlow.js-based browser AI</li>
+            <li><strong>Hardware Acceleration:</strong> WebGL GPU Shaders</li>
+            <li><strong>Video Feed:</strong> HTML5 MediaDevices API</li>
+          </ul>
+        </div>
+
+        <div class="modal-attribution-box">
+          <div class="dev-badge-large">
+            <svg viewBox="0 0 16 16" fill="currentColor" class="badge-icon-lg"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>
+            <span>Developed by Sadman Sakib</span>
+          </div>
+          <p class="attribution-note">
+            The application processes camera data locally in the browser with zero cloud dependencies for inference.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-close-modal>Understood</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: AI Technology & Models -->
+  <div id="techModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="techModalTitle" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">🧠</span>
+          <h3 id="techModalTitle" class="modal-title">AI Technology & Models</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal aria-label="Close dialog">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>AI Face Scanner harnesses four specialized neural network architectures executing directly on the client GPU:</p>
+        
+        <div class="model-cards-grid">
+          <div class="model-item">
+            <div class="model-item-header">
+              <span class="model-badge">Detector</span>
+              <h5>Tiny Face Detector</h5>
+            </div>
+            <p>A fast, performant MobileNetV1-based real-time face detector utilizing depthwise separable convolutions for high frame rates.</p>
+          </div>
+
+          <div class="model-item">
+            <div class="model-item-header">
+              <span class="model-badge">Geometry</span>
+              <h5>Face Landmark 68</h5>
+            </div>
+            <p>Locates 68 precision spatial landmark coordinates outlining jawline, brows, eyes, nose ridge, and lip contours.</p>
+          </div>
+
+          <div class="model-item">
+            <div class="model-item-header">
+              <span class="model-badge">Demographics</span>
+              <h5>Age & Gender Model</h5>
+            </div>
+            <p>Multi-task deep convolutional network simultaneously regressing estimated biological age and binary gender confidence.</p>
+          </div>
+
+          <div class="model-item">
+            <div class="model-item-header">
+              <span class="model-badge">Affective</span>
+              <h5>Face Expression Model</h5>
+            </div>
+            <p>Categorizes facial emotion softmax distributions across 7 universal states: happy, sad, angry, surprised, neutral, fearful, and disgusted.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-close-modal>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Privacy & Security -->
+  <div id="privacyModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">🛡️</span>
+          <h3 id="privacyModalTitle" class="modal-title">Privacy & Security</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal aria-label="Close dialog">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="privacy-guarantee-box">
+          <h4 class="guarantee-title">🔒 100% On-Device Client Processing</h4>
+          <p>
+            Your privacy is guaranteed by architectural design. AI Face Scanner does not connect to any recording, streaming, or logging servers.
+          </p>
+        </div>
+
+        <ul class="privacy-points">
+          <li><strong>Zero Network Uploads:</strong> Every frame analyzed from your webcam is held temporarily in browser memory (WebGL texture) and discarded immediately after inference.</li>
+          <li><strong>No Storage:</strong> No photos, videos, or biometric signatures are written to localStorage, cookies, or remote databases.</li>
+          <li><strong>Instant Deactivation:</strong> Clicking "Stop Camera" immediately terminates all MediaStream tracks and turns off hardware camera indicators.</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-close-modal>Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Snapshot Viewer & Download -->
+  <div id="snapshotModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="snapshotModalTitle" style="display: none;">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">📸</span>
+          <h3 id="snapshotModalTitle" class="modal-title">AI Scanner Snapshot</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal aria-label="Close dialog">✕</button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="snapshot-preview-container">
+          <img id="snapshotImage" alt="Snapshot preview" class="snapshot-preview-img">
+        </div>
+        <p class="snapshot-caption" id="snapshotCaption">High-resolution frame with AI bounding boxes.</p>
+      </div>
+      <div class="modal-footer">
+        <a id="downloadSnapshotBtn" class="btn btn-primary" download="ai-face-scanner-capture.png" href="#">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          <span>Download Snapshot</span>
+        </a>
+        <button type="button" class="btn btn-secondary" data-close-modal>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Box -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- ========================================================
+       FOOTER
+  ======================================================== -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      
+      <!-- Brand & Tagline -->
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <span class="footer-logo-icon">🤖</span>
+          <span class="footer-title">AI Face Scanner</span>
+        </div>
+        <p class="footer-desc">Real-time browser-based face analysis</p>
+      </div>
+
+      <!-- Center Software Attribution -->
+      <div class="footer-credit">
+        <span class="footer-dev-badge">Developed by Sadman Sakib</span>
+        <p class="footer-copy">© 2026 Sadman Sakib — AI Face Scanner</p>
+      </div>
+
+      <!-- Footer Modal Links -->
+      <div class="footer-links">
+        <button type="button" class="footer-link" id="footerPrivacyLink">Privacy</button>
+        <span class="link-divider">•</span>
+        <button type="button" class="footer-link" id="footerAboutLink">About</button>
+        <span class="link-divider">•</span>
+        <button type="button" class="footer-link" id="footerTechLink">Technology</button>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- Main Application Script -->
+  <script src="js/app.js"></script>
+</body>
+</html>
